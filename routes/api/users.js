@@ -2,31 +2,37 @@ const { request } = require('express');
 const express = require('express');
 const router = express.Router();
 const pool = require('./../../config/db');
+const { check, validationResult } = require('express-validator');
 
 //  @route  Post api/users
 //  @desc   Register User
 //  @access Public
-router.post('/', (req, res) => {
-    const user = req.body
-    let insertQuery = `insert into users(name, email, password, avatar) 
-                       values(${user.name}, '${user.email}', '${user.password}', '${user.avatar}')`
+router.post(
+  '/',
+  [
+    check('name', 'Name is required.').not().isEmpty(),
+    check('email', 'Please include a valid email.').isEmail(),
+    check(
+      'password',
+      'Please enter an alphanumeric password with 9 or more chracters.'
+    )
+    .isLength({ min: 9 })
+      ,
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-    client.query(insertQuery, (err, result)=>{
-        if(!err){
-            res.send('Insertion was successful')
-        }
-        else{ console.log(err.message) }
-    })
-    client.end;
+    // See if user exists
 
-    // const insertRow = 'insert into users (name, email, password, avatar) values(?, ?, ?, ?)'; //Insert query
+    // Get user's gravatar
 
-    // const register = pool.query(insertRow, [row], (err, rows) => { //Insert row into database
-    //     if (err) throw err;
-    //     console.log('inserted: ' + row); //Print row inserted
-    // });
+    //
 
-    // console.log(row);
-});
+    res.send('User route');
+  }
+);
 
 module.exports = router;
