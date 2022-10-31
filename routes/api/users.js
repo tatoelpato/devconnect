@@ -30,9 +30,10 @@ router.post(
         const { name, email, password, avatar } = req.body;
         // See if user exists (if exists, throw error)
         const user = await pool.query("SELECT * FROM users WHERE email = $1", [email])
-        //query("SELECT * FROM users email = $1", [email]);
 
-        res.json(user.rows)
+        if (user.rows.length !== 0) {
+            return res.status(401).send('User already exists.')
+        }
         // Encrypt password
         
         // Register user
