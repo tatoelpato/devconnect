@@ -1,10 +1,11 @@
-const { request } = require('express');
 const express = require('express');
 const router = express.Router();
 const pool = require('./../../config/dbHandler.js');
 const { check, validationResult } = require('express-validator');
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
+const jwt = require('./../../utils/jwtGenerator');
+const jwtGen = require('./../../utils/jwtGenerator');
 
 //  @route  Post api/users
 //  @desc   Register User
@@ -53,10 +54,11 @@ router.post(
         'INSERT INTO users (name, email, password, avatar) values ($1, $2, $3, $4) RETURNING *',
         [name, email, bcryptPass, avatar]
       );
-      res.json(newUser.rows[0]);
 
       // Return jsonwebtoken
-      
+      const token = jwtGen(newUser.rows[0].id);
+
+      res.json({token});
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server Error');
