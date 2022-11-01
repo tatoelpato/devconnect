@@ -16,7 +16,7 @@ router.post(
     check('email', 'Please include a valid email.').isEmail(),
     check(
       'password',
-      'Please enter an alphanumeric password with 9 or more chracters.'
+      'Please enter a password with 9 or more characters.'
     ).isLength({ min: 9 }),
   ],
   async (req, res) => {
