@@ -4,14 +4,13 @@ const pool = require('./../../config/dbHandler.js');
 const { check, validationResult } = require('express-validator');
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
-const jwt = require('./../../utils/jwtGenerator');
 const jwtGen = require('./../../utils/jwtGenerator');
 
 //  @route  Post api/users
 //  @desc   Register User
 //  @access Public
 router.post(
-  '/register',
+  '/',
   [
     check('name', 'Name is required.').not().isEmpty(),
     check('email', 'Please include a valid email.').isEmail(),
