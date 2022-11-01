@@ -3,55 +3,64 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./../../config/dbHandler.js');
 const { check, validationResult } = require('express-validator');
+const gravatar = require('gravatar');
+const bcrypt = require('bcryptjs');
 
 //  @route  Post api/users
 //  @desc   Register User
 //  @access Public
 router.post(
   '/register',
-//   [
-//     check('name', 'Name is required.').not().isEmpty(),
-//     check('email', 'Please include a valid email.').isEmail(),
-//     check(
-//       'password',
-//       'Please enter an alphanumeric password with 9 or more chracters.'
-//     )
-//     .isLength({ min: 9 })
-//       ,
-//   ],
+  [
+    check('name', 'Name is required.').not().isEmpty(),
+    check('email', 'Please include a valid email.').isEmail(),
+    check(
+      'password',
+      'Please enter an alphanumeric password with 9 or more chracters.'
+    ).isLength({ min: 9 }),
+  ],
   async (req, res) => {
-    // const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //   return res.status(400).json({ errors: errors.array() });
-    // }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
     try {
-        // Destructure the req.body (name, email, password, avatar)
-        const { name, email, password, avatar } = req.body;
-        // See if user exists (if exists, throw error)
-        const user = await pool.query("SELECT * FROM users WHERE email = $1", [email])
+      // Destructure the req.body (name, email, password)
+      const { name, email, password } = req.body;
+      // See if user exists (if exists, throw error)
+      const user = await pool.query('SELECT * FROM users WHERE email = $1', [
+        email,
+      ]);
 
-        if (user.rows.length !== 0) {
-            return res.status(401).send('User already exists.')
-        }
-        // Encrypt password
-        
-        // Register user
+      if (user.rows.length !== 0) {
+        return res.status(401).send('User already exists.');
+      }
 
-        // Return jsonwebtoken
+      // Get user's gravatar
+      const avatar = gravatar.url(email, {
+        s: '200',
+        r: 'pg',
+        d: 'mm',
+      });
 
+      // Encrypt password
+      const salt = await bcrypt.genSalt(10);
+      const bcryptPass = await bcrypt.hash(password, salt);
+
+      // Register user
+      const newUser = await pool.query(
+        'INSERT INTO users (name, email, password, avatar) values ($1, $2, $3, $4) RETURNING *',
+        [name, email, bcryptPass, avatar]
+      );
+      res.json(newUser.rows[0]);
+
+      // Return jsonwebtoken
+      
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error')
+      console.error(err.message);
+      res.status(500).send('Server Error');
     }
-    
-    
-    // Get user's gravatar
-
-    
-
-    
-
   }
 );
 
