@@ -1,9 +1,159 @@
 const express = require('express');
+const { restart } = require('nodemon');
 const router = express.Router();
+const auth = require('../../middleware/auth');
+const pool = require('./../../config/dbHandler.js');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const { check, validationResult } = require('express-validator');
+
+//  @route  GET api/profile/me
+//  @desc   Get current user's profile
+//  @access private
+router.get('/me', auth, async (req, res) => {
+  const token = req.header('x-auth-token');
+  const decoded = jwt.verify(token, process.env.JWT_TOKEN);
+  const user_id = decoded.user;
+  try {
+    const profile = await await pool.query(
+      'SELECT * FROM profile WHERE user_id = $1',
+      [user_id]
+    );
+
+    if (profile.rows.length === 0) {
+      return res.status(400).json({ msg: 'There is no profile for this user' });
+    }
+
+    res.json(profile.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+//  @route  POST api/profile
+//  @desc   Create or Update user profile
+//  @access private
+router.post(
+  '/',
+  [
+    auth,
+    [
+      check('status', 'Status is required').not().isEmpty(),
+      check('skills', 'Skills is required').not().isEmpty(),
+    ],
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const token = req.header('x-auth-token');
+    const decoded = jwt.verify(token, process.env.JWT_TOKEN);
+    const id = decoded.user;
+
+    const {
+      company,
+      website,
+      location,
+      status,
+      skills,
+      bio,
+      githubusername,
+      experience,
+      education,
+      youtube,
+      facebook,
+      twitter,
+      instagram,
+      linkedin,
+    } = req.body;
+    const profileFields = {};
+    profileFields.user = id;
+
+    if (company) profileFields.company = company;
+    if (website) profileFields.website = website;
+    if (location) profileFields.location = location;
+    if (bio) profileFields.bio = bio;
+    if (status) profileFields.status = status;
+    if (githubusername) profileFields.company = githubusername;
+    if (skills) profileFields.skills = skills.split(',');
+
+    // Build Social Object
+    profileFields.social = {};
+    if (youtube) profileFields.social.youtube = youtube;
+    if (twitter) profileFields.social.twitter = twitter;
+    if (facebook) profileFields.social.facebook = facebook;
+    if (linkedin) profileFields.social.linkedin = linkedin;
+    if (instagram) profileFields.social.instagram = instagram;
+
+    try {
+      let profile = await pool.query(
+        'SELECT * FROM profile WHERE user_id = $1',
+        [id]
+      );
+
+      if (profile !== 0) {
+        profile = await pool.query(
+          'UPDATE profile SET company = $1, website = $2, location = $3, status = $4, skills = $5, bio = $6, githubusername = $7, experience = $8, education = $9, social = $10 WHERE user_id = $11',
+          [
+            company,
+            website,
+            location,
+            status,
+            profileFields.skills,
+            bio,
+            JSON.stringify(githubusername),
+            experience,
+            education,
+            JSON.stringify(profileFields.social),
+            id,
+          ]
+        );
+        return res.json(profile);
+      }
+
+      //Create
+      if (profile === 0) {
+        profile = await pool.query(
+          'INSERT INTO profile (user_id, company, website, location, status, skills, bio, githubusername, experience, education, social) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+          [
+            id,
+            company,
+            website,
+            location,
+            status,
+            profileFields.skills,
+            bio,
+            JSON.stringify(githubusername),
+            experience,
+            education,
+            JSON.stringify(profileFields.social),
+          ]
+        );
+        return res.json(profile);
+      }
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
+    }
+  }
+);
 
 //  @route  GET api/profile
-//  @desc   Test route
+//  @desc   GET ALL PROFILES
 //  @access public
-router.get('/', (req, res) => res.send('Profile route.'));
+router.get('/', async (req, res) => {
+  try {
+    const profiles = await pool.query(
+      'SELECT name, avatar, company, website, location, status, skills, bio, githubusername, experience, education, social FROM profile p JOIN users u ON u.id = p.user_id'
+    );
+    res.json(profiles.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 module.exports = router;
