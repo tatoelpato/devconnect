@@ -69,6 +69,8 @@ router.post(
       instagram,
       linkedin,
     } = req.body;
+
+    //Build profile object
     const profileFields = {};
     profileFields.user = id;
 
@@ -94,7 +96,7 @@ router.post(
         [id]
       );
 
-      if (profile !== 0) {
+      if (profile.rows.length !== 0) {
         profile = await pool.query(
           'UPDATE profile SET company = $1, website = $2, location = $3, status = $4, skills = $5, bio = $6, githubusername = $7, experience = $8, education = $9, social = $10 WHERE user_id = $11',
           [
@@ -115,7 +117,7 @@ router.post(
       }
 
       //Create
-      if (profile === 0) {
+      if (profile.rows.length === 0) {
         profile = await pool.query(
           'INSERT INTO profile (user_id, company, website, location, status, skills, bio, githubusername, experience, education, social) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
           [
@@ -150,6 +152,45 @@ router.get('/', async (req, res) => {
       'SELECT name, avatar, company, website, location, status, skills, bio, githubusername, experience, education, social FROM profile p JOIN users u ON u.id = p.user_id'
     );
     res.json(profiles.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+//  @route  GET api/profile/user/:user_id
+//  @desc   GET ALL PROFILES
+//  @access public
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const profile = await pool.query(
+      'SELECT name, avatar, company, website, location, status, skills, bio, githubusername, experience, education, social FROM profile p JOIN users u ON u.id = p.user_id WHERE id = $1',
+      [req.params.user_id]
+    );
+
+    if (profile.rows.length === 0) {
+      return res.status(400).json({ msg: 'Profile not found.' });
+    }
+    res.json(profile.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+//  @route  Delete api/profile
+//  @desc   Delete profile, user, & posts
+//  @access private
+router.delete('/', auth, async (req, res) => {
+  const token = req.header('x-auth-token');
+  const decoded = jwt.verify(token, process.env.JWT_TOKEN);
+  const id = decoded.user;
+  try {
+    // @todo - remove user's posts
+
+    // Remove user and profile
+    await pool.query('delete from users where id = $1', [id]);
+    res.json({ msg: 'User has been deleted.' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
