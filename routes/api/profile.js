@@ -255,8 +255,7 @@ router.get('/experience', auth, async (req, res) => {
   const id = decoded.user;
   try {
     const profile = await pool.query(
-      'select element as experience, id from profile , unnest(experience) WITH ordinality AS a(element, id) WHERE user_id = $1 ORDER BY id ',
-      [id]
+      'SELECT id FROM experienceJSON WHERE id = 2'
     );
 
     const { title, company, location, from, to, current, description } =
@@ -267,9 +266,9 @@ router.get('/experience', auth, async (req, res) => {
     // Get remove index
 
     //const removeIndex = profile.rows.map(item => item.id).indexOf(req.params.id);
-    const removeIndex = 
-
-    console.log(removeIndex)
+    
+    
+    console.log(profile.rows)
     res.json(profile.rows);
   } catch (err) {
     console.error(err.message);
