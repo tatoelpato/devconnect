@@ -197,4 +197,84 @@ router.delete('/', auth, async (req, res) => {
   }
 });
 
+//  @route  PUT api/profile/experience
+//  @desc   Add profile experience
+//  @access private
+router.put(
+  '/experience',
+  [
+    auth,
+    [
+      check('title', 'Title is required').not().isEmpty(),
+      check('company', 'Company is required').not().isEmpty(),
+      check('from', 'From date is required').not().isEmpty(),
+    ],
+  ],
+  async (req, res) => {
+    const token = req.header('x-auth-token');
+    const decoded = jwt.verify(token, process.env.JWT_TOKEN);
+    const id = decoded.user;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { title, company, location, from, to, current, description } =
+      req.body;
+
+    const newExp = {
+      title,
+      company,
+      location,
+      from,
+      to,
+      current,
+      description,
+    };
+
+    try {
+      const profile = await pool.query(
+        'UPDATE profile SET experience = experience || ARRAY[$1]::json[] where user_id = $2 RETURNING *',
+        [newExp, id]
+      );
+
+      res.json(profile.rows);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server Error');
+    }
+  }
+);
+
+//  @route  DELETE api/profile/experience
+//  @desc   Delete experience from profile
+//  @access private
+router.get('/experience', auth, async (req, res) => {
+  const token = req.header('x-auth-token');
+  const decoded = jwt.verify(token, process.env.JWT_TOKEN);
+  const id = decoded.user;
+  try {
+    const profile = await pool.query(
+      'select element as experience, id from profile , unnest(experience) WITH ordinality AS a(element, id) WHERE user_id = $1 ORDER BY id ',
+      [id]
+    );
+
+    const { title, company, location, from, to, current, description } =
+      req.body;
+
+      if(title) profile.title = title
+
+    // Get remove index
+
+    //const removeIndex = profile.rows.map(item => item.id).indexOf(req.params.id);
+    const removeIndex = 
+
+    console.log(removeIndex)
+    res.json(profile.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;
