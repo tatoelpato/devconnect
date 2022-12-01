@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('./../../config/dbHandler.js');
 const { check, validationResult } = require('express-validator');
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
-const jwtGen = require('./../../utils/jwtGenerator');
+const jwt = require('jsonwebtoken');
+const User = require('./../../models/User');
+require('dotenv').config
 
 //  @route  Post api/users
 //  @desc   Register User
@@ -12,7 +13,8 @@ const jwtGen = require('./../../utils/jwtGenerator');
 router.post(
   '/',
   [
-    check('name', 'Name is required.').not().isEmpty(),
+    check('firstName', 'First name is required.').not().isEmpty(),
+    check('lastName', 'Last name is required.').not().isEmpty(),
     check('email', 'Please include a valid email.').isEmail(),
     check(
       'password',
@@ -27,14 +29,12 @@ router.post(
 
     try {
       // Destructure the req.body (name, email, password)
-      const { name, email, password } = req.body;
+      const { firstName, lastName, email, password } = req.body;
       // See if user exists (if exists, throw error)
-      const user = await pool.query('SELECT * FROM users WHERE email = $1', [
-        email,
-      ]);
+      let user = await User.findOne({ email });
 
-      if (user.rows.length !== 0) {
-        return res.status(401).send('User already exists.');
+      if (user) {
+        return res.status(400).json({ errors: 'User already exists.' });
       }
 
       // Get user's gravatar
@@ -44,20 +44,35 @@ router.post(
         d: 'mm',
       });
 
+      user = new User({
+        firstName,
+        lastName,
+        email,
+        password,
+        avatar,
+      });
+
       // Encrypt password
       const salt = await bcrypt.genSalt(10);
-      const bcryptPass = await bcrypt.hash(password, salt);
+      user.password = await bcrypt.hash(password, salt);
 
       // Register user
-      const newUser = await pool.query(
-        'INSERT INTO users (name, email, password, avatar) values ($1, $2, $3, $4) RETURNING *',
-        [name, email, bcryptPass, avatar]
-      );
+      await user.save();
 
       // Return jsonwebtoken
-      const token = jwtGen(newUser.rows[0].id);
+      const payload = {
+        id: user.id,
+      };
 
-      res.json({token});
+      jwt.sign(
+        payload,
+        process.env.JWT_TOKEN,
+        { expiresIn: 360000 },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server Error');

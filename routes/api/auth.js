@@ -1,26 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('./../../middleware/auth');
-const pool = require('./../../config/dbHandler');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { check, validationResult } = require('express-validator');
-const jwtGen = require('./../../utils/jwtGenerator');
+const User = require('./../../models/User');
+require('dotenv').config;
 
 //  @route  GET api/auth
 //  @desc   Test route
 //  @access public
 router.get('/', auth, async (req, res) => {
-  const token = req.header('x-auth-token');
-  const decoded = jwt.verify(token, process.env.JWT_TOKEN);
-  const id = decoded.user;
   try {
-    const user = await pool.query(
-      'SELECT id, name, email, avatar, date FROM users WHERE id = $1',
-      [id]
-    );
-    res.json(user.rows[0]);
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error.');
@@ -42,27 +35,32 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
+    // Destructure the req.body (email, password)
+    const { email, password } = req.body;
+
     try {
-      // Destructure the req.body (name, email, password)
-      const { email, password } = req.body;
       // See if user exists (if exists, throw error)
-      const user = await pool.query('SELECT * FROM users WHERE email = $1', [
-        email,
-      ]);
+      let user = await User.findOne({ email });
 
-      const isMatch = await bcrypt.compare(password, user.rows[0].password);
-
-      if (user.rows.length === 0) {
-        return res.status(401).send('Invalid Credentials.');
+      if (!user) {
+        return res
+          .status(400)
+          .json({ errors: [{ msg: 'Invalid Credentials.' }] });
       }
 
+      const isMatch = await bcrypt.compare(password, user.password);
+
       if (!isMatch) {
-        return res.status(401).send('Invalid Credentials.');
+        return res
+          .status(400)
+          .json({ errors: [{ msg: 'Invalid Credentials.' }] });
       }
 
       // Return jsonwebtoken
       const payload = {
-        user: user.rows[0].id,
+        user: {
+          id: user.id,
+        },
       };
 
       jwt.sign(
