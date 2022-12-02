@@ -378,7 +378,6 @@ router.delete('/education/:edu_id', auth, async (req, res) => {
 //  @desc   GET github repo
 //  @access public
 router.get('/github/:username', async (req, res) => {
-
   try {
     const options = {
       uri: `https://api.github.com/users/${req.params.username}/repos?sort=created:asc&per_page=5`,
