@@ -5,6 +5,8 @@ const auth = require('./../../middleware/auth');
 const User = require('./../../models/User');
 const Post = require('./../../models/Post');
 const Profile = require('./../../models/Profile');
+const { trusted } = require('mongoose');
+const objectId = require('mongodb').ObjectId;
 
 //  @route  Post api/posts
 //  @desc   Create a post
@@ -220,19 +222,19 @@ router.post(
 //  @route  PUT api/posts/:id
 //  @desc   Edit a comment by id
 //  @access private
-router.put('/comment/edit/:id', auth, async (req, res) => {
-  const commentEdit = {
-    text: req.body.text,
-  };
-
+router.put('/post/:post_id/comment/:comment_id', auth, async (req, res) => {
   try {
     const comment = await Post.findOneAndUpdate(
-      { id: req.params.id },
-      { $set: commentEdit },
+      {
+        _id: objectId(req.params.post_id),
+        'comments._id': objectId(req.params.comment_id),
+      },
+      { $set: { 'comments.$.text': req.body.text } },
       { new: true }
     );
 
-    res.json(comment.comments);
+    console.log(comment);
+    res.json(comment);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
