@@ -205,8 +205,6 @@ router.post(
         user: req.user.id,
       };
 
-      console.log(user.firstName);
-
       post.comments.unshift(newComment);
 
       await post.save();
@@ -222,7 +220,7 @@ router.post(
 //  @route  PUT api/posts/:id
 //  @desc   Edit a comment by id
 //  @access private
-router.put('/post/:post_id/comment/:comment_id', auth, async (req, res) => {
+router.put('/:post_id/comment/:comment_id', auth, async (req, res) => {
   try {
     const comment = await Post.findOneAndUpdate(
       {
@@ -233,7 +231,6 @@ router.put('/post/:post_id/comment/:comment_id', auth, async (req, res) => {
       { new: true }
     );
 
-    console.log(comment);
     res.json(comment);
   } catch (err) {
     console.error(err);

@@ -210,36 +210,67 @@ router.put(
 );
 
 //  @route  PUT api/profile/experience/:exp_id
-//  @desc   Update experience from profile
+//  @desc   Edit experience from profile
 //  @access private
-router.put('/experience/:exp_id', auth, async (req, res) => {
-  const { title, company, location, from, to, current, description } = req.body;
-  const expFields = {
-    title,
-    company,
-    location,
-    from,
-    to,
-    current,
-    description,
-  };
+// router.put('/experience/:exp_id', auth, async (req, res) => {
+//   const { title, company, location, from, to, current, description } = req.body;
+//   const expFields = {
+//     title,
+//     company,
+//     location,
+//     from,
+//     to,
+//     current,
+//     description,
+//   };
 
+//   try {
+//     let profile = await Profile.findOne({ id: req.params.exp_id });
+
+//     const removeIndex = profile.experience
+//       .map((item) => item.id)
+//       .indexOf(req.params.exp_id);
+
+//     profile.experience.splice(removeIndex, 1);
+
+//     profile.experience.unshift(expFields);
+
+//     await profile.save();
+
+//     res.json(profile);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).send('Server Error');
+//   }
+// });
+
+//  @route  PUT api/profile/experience/:exp_id
+//  @desc   Edit experience from profile
+//  @access private
+router.put('/:profile_id/experience/:exp_id', auth, async (req, res) => {
   try {
-    let profile = await Profile.findOne({ id: req.params.exp_id });
-
-    const removeIndex = profile.experience
-      .map((item) => item.id)
-      .indexOf(req.params.exp_id);
-
-    profile.experience.splice(removeIndex, 1);
-
-    profile.experience.unshift(expFields);
-
-    await profile.save();
+    const profile = await Profile.findOneAndUpdate(
+      {
+        _id: objectId(req.params.profile_id),
+        'experience._id': objectId(req.params.exp_id),
+      },
+      {
+        $set: {
+          'experience.$.title': req.body.title,
+          'experience.$.company': req.body.company,
+          'experience.$.location': req.body.location,
+          'experience.$.from': req.body.from,
+          'experience.$.to': req.body.to,
+          'experience.$.current': req.body.current,
+          'experience.$.description': req.body.description,
+        },
+      },
+      { new: true }
+    );
 
     res.json(profile);
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).send('Server Error');
   }
 });
@@ -316,37 +347,68 @@ router.put(
 );
 
 //  @route  PUT api/profile/experience/:exp_id
-//  @desc   Update experience from profile
+//  @desc   Edit experience from profile
 //  @access private
-router.put('/education/:edu_id', auth, async (req, res) => {
-  const { school, degree, fieldOfStudy, from, to, current, description } =
-    req.body;
-  const eduFields = {
-    school,
-    degree,
-    fieldOfStudy,
-    from,
-    to,
-    current,
-    description,
-  };
+// router.put('/education/:edu_id', auth, async (req, res) => {
+//   const { school, degree, fieldOfStudy, from, to, current, description } =
+//     req.body;
+//   const eduFields = {
+//     school,
+//     degree,
+//     fieldOfStudy,
+//     from,
+//     to,
+//     current,
+//     description,
+//   };
 
+//   try {
+//     let profile = await Profile.findOne({ id: req.params.edu_id });
+
+//     const removeIndex = profile.education
+//       .map((item) => item.id)
+//       .indexOf(req.params.edu_id);
+
+//     profile.education.splice(removeIndex, 1);
+
+//     profile.education.unshift(eduFields);
+
+//     await profile.save();
+
+//     res.json(profile);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).send('Server Error');
+//   }
+// });
+
+//  @route  PUT api/profile/education/:edu_id
+//  @desc   Edit education from profile
+//  @access private
+router.put('/:profile_id/education/:edu_id', auth, async (req, res) => {
   try {
-    let profile = await Profile.findOne({ id: req.params.edu_id });
-
-    const removeIndex = profile.education
-      .map((item) => item.id)
-      .indexOf(req.params.edu_id);
-
-    profile.education.splice(removeIndex, 1);
-
-    profile.education.unshift(eduFields);
-
-    await profile.save();
+    const profile = await Profile.findOneAndUpdate(
+      {
+        _id: objectId(req.params.profile_id),
+        'education._id': objectId(req.params.edu_id),
+      },
+      {
+        $set: {
+          'education.$.school': req.body.school,
+          'education.$.degree': req.body.degree,
+          'education.$.fieldOfStudy': req.body.fieldOfStudy,
+          'education.$.from': req.body.from,
+          'education.$.to': req.body.to,
+          'education.$.current': req.body.current,
+          'education.$.description': req.body.description,
+        },
+      },
+      { new: true }
+    );
 
     res.json(profile);
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).send('Server Error');
   }
 });
